@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐎 2026马年开运抽签</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --main-red: #D32F2F; --gold: #FFD700; --soft-yellow: #FFF8E1; }
+        body { margin: 0; background-color: var(--main-red); font-family: "Microsoft YaHei", sans-serif; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        .container { width: 100%; max-width: 500px; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; }
+        
+        /* 音乐控制 */
+        .music-control { position: fixed; top: 20px; right: 20px; z-index: 100; background: rgba(0,0,0,0.5); width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; border: 2px solid var(--gold); }
+        .rotating { animation: rotate 3s linear infinite; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* 标题区 */
+        .header { text-align: center; margin-bottom: 30px; position: relative; }
+        .title { color: var(--gold); font-size: 36px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; }
+        .subtitle { color: #FFCDD2; font-size: 14px; margin-top: 8px; display: block; letter-spacing: 2px; }
+
+        /* 统一卡片样式 */
+        .box-panel { width: 100%; background: var(--soft-yellow); border-radius: 15px; border: 4px solid var(--gold); padding: 30px 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); box-sizing: border-box; text-align: center; }
+
+        /* 输入姓名区域 */
+        #nameSection { margin-top: 20px; }
+        .name-input { width: 85%; padding: 15px; border: 2px solid var(--main-red); border-radius: 30px; font-size: 18px; text-align: center; outline: none; margin: 20px 0; }
+        
+        /* 抽签展示区域 */
+        #drawSection { display: none; width: 100%; }
+        .card { height: 260px; display: flex; justify-content: center; align-items: center; position: relative; }
+        .shake { animation: shakeAnim 0.5s ease-in-out; }
+        @keyframes shakeAnim { 0%, 100% { transform: scale(1); } 25% { transform: rotate(-4deg) scale(1.1); } 75% { transform: rotate(4deg) scale(1.1); } }
+
+        .user-name { color: #795548; font-size: 18px; margin-bottom: 15px; font-weight: bold; display: block; }
+        .blessing-text { color: var(--main-red); font-size: 26px; font-weight: bold; line-height: 1.5; padding: 0 10px; }
+
+        /* 按钮 */
+        .btn { width: 85%; background: linear-gradient(to bottom, #FFEB3B, #FBC02D); color: var(--main-red); font-size: 20px; font-weight: bold; padding: 15px; border-radius: 40px; border: none; cursor: pointer; box-shadow: 0 6px 0 #D84315; transition: 0.1s; margin-top: 20px; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #D84315; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body onclick="tryPlayMusic()">
+
+<audio id="bgMusic" loop preload="auto">
+    <source src="https://actions.google.com/sounds/v1/crowds/carnival_atmosphere.ogg" type="audio/ogg">
+    </audio>
+
+<div class="music-control" id="musicBtn" onclick="toggleMusic(event)">
+    <span id="musicIcon" style="font-size: 20px;">🎵</span>
+</div>
+
+<div class="container">
+    <div class="header">
+        <h1 class="title">🐎 2026马年大吉</h1>
+        <span class="subtitle">—— 瑞马奔腾 · 好运随名而来 ——</span>
+    </div>
+
+    <div id="nameSection" class="box-panel">
+        <b style="color:var(--main-red); font-size: 18px;">领取您的2026专属福签</b>
+        <input type="text" id="userNameInput" class="name-input" placeholder="请输入您的姓名" maxlength="8">
+        <button class="btn" onclick="startDraw()">进入抽签</button>
+    </div>
+
+    <div id="drawSection">
+        <div class="box-panel card" id="cardContainer">
+            <div id="readyContent">
+                <p style="color:var(--main-red); font-size:20px; font-weight:bold;">🐎<br>马到功成，福气将至</p>
+            </div>
+            <div id="resultContent" class="hidden">
+                <span class="user-name" id="displayName"></span>
+                <div class="blessing-text" id="blessingDisplay"></div>
+            </div>
+        </div>
+        <button class="btn" id="actionBtn" onclick="doDraw()">抽取我的专属好运</button>
+        <p style="color:white; font-size:12px; margin-top:20px; opacity:0.8;" onclick="location.reload()">重新输入姓名</p>
+    </div>
+</div>
+
+<script>
+    const blessings = [
+        "【一马当先】2026业绩领跑全队，晋升势不可挡！", "【龙马精神】身体强健如龙，活力满格，百病不侵！",
+        "【马到成功】心之所向，皆能圆满，凡事都有好结果！", "【万马奔腾】财路大开，正财偏财滚滚而来，钱包鼓鼓！",
+        "【金马贺岁】阖家幸福安康，日子像糖一样甜！", "【跃马扬鞭】职场乘风破浪，所有难题迎刃而解！",
+        "【快马加鞭】工作效率翻倍，告别加班，享受自由生活！", "【千军万马】贵人环绕，团队力挺，你永远不是一个人在战斗！",
+        "【策马奔腾】心态积极洒脱，活出真我，潇洒走四方！", "【神马都行】2026运气爆棚，想什么来什么，锦鲤附体！",
+        "【汗马功劳】你的付出终有厚报，奖金与荣誉双丰收！", "【老马识途】智慧大增，任何迷茫都能找到最优出口！",
+        "【马不停蹄】好运接踵而至，喜事连连，应接不暇！", "【天马行空】创意无限爆发，点子成金，惊艳全场！",
+        "【招兵买马】人缘极佳，新的一年结识更多志同道合的好友！", "【马首是瞻】展现领导魅力，成为团队的核心焦点！",
+        "【鲜衣怒马】不负韶华，活得精彩，颜值与才华齐飞！", "【马到成名】口碑名利双收，在行业内声名崛起！",
+        "【如龙似马】气场全开，职场气势如虹，压力全消！", "【马泰民安】内心平静充实，情绪稳定，岁岁平安！",
+        "【竹马之友】重逢老友，情谊深厚，生活充满温情！", "【走马上任】迎来职业生涯新高度，掌握更多主动权！",
+        "【马载福来】福气装满车，好运拉满仓，2026大吉大利！", "【马力十足】潜力大爆发，突破自我极限，创造奇迹！",
+        "【飞马踏云】步步高升，轻松跨越人生的每一个小目标！", "【马年常乐】笑口常开，烦恼减半，快乐加倍！",
+        "【金戈铁马】勇气倍增，无惧任何挑战，逆风翻盘！", "【马鸣风萧】独具一格的魅力，吸引所有美好的目光！",
+        "【马壮牛强】吃得香睡得好，每天都是精神小伙/小仙女！", "【马福满堂】不仅你旺，全家跟着一起旺，福气满溢！"
+    ];
+
+    let currentName = "";
+    const audio = document.getElementById('bgMusic');
+    const musicBtn = document.getElementById('musicBtn');
+
+    function tryPlayMusic() {
+        if (audio.paused) {
+            audio.play().then(() => {
+                musicBtn.classList.add('rotating');
+            }).catch(()=>{});
+        }
+    }
+
+    function toggleMusic(e) {
+        e.stopPropagation();
+        if (audio.paused) {
+            audio.play();
+            musicBtn.classList.add('rotating');
+        } else {
+            audio.pause();
+            musicBtn.classList.remove('rotating');
+        }
+    }
+
+    function startDraw() {
+        const input = document.getElementById('userNameInput');
+        if (!input.value.trim()) {
+            alert("请先留下您的大名哦！");
+            return;
+        }
+        currentName = input.value.trim();
+        document.getElementById('nameSection').style.display = 'none';
+        document.getElementById('drawSection').style.display = 'block';
+        tryPlayMusic();
+    }
+
+    function fireConfetti() {
+        const count = 200;
+        const defaults = { origin: { y: 0.7 }, zIndex: 999 };
+
+        function fire(particleRatio, opts) {
+            confetti({ ...defaults, ...opts,
+                particleCount: Math.floor(count * particleRatio),
+                colors: ['#FFD700', '#D32F2F', '#FFFFFF']
+            });
+        }
+
+        fire(0.25, { spread: 26, startVelocity: 55 });
+        fire(0.2, { spread: 60 });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45 });
+    }
+
+    function doDraw() {
+        const card = document.getElementById('cardContainer');
+        const actionBtn = document.getElementById('actionBtn');
+        
+        actionBtn.disabled = true;
+        actionBtn.innerText = "正在为您祈福...";
+        card.classList.add('shake');
+
+        setTimeout(() => {
+            card.classList.remove('shake');
+            const randomIdx = Math.floor(Math.random() * blessings.length);
+            
+            document.getElementById('readyContent').classList.add('hidden');
+            document.getElementById('resultContent').classList.remove('hidden');
+            document.getElementById('displayName').innerText = `祝【${currentName}】：`;
+            document.getElementById('blessingDisplay').innerText = blessings[randomIdx];
+            
+            // 喷洒纸屑
+            fireConfetti();
+            
+            actionBtn.disabled = false;
+            actionBtn.innerText = "好运连连·再抽一次";
+        }, 800);
+    }
+</script>
+</body>
+</html>
